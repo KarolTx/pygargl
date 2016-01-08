@@ -1,7 +1,11 @@
 
 # pygargl
 Python3 implementation of Gargl template file parser
+
 author: https://github.com/KarolTx
+
+inspired by: https://github.com/jodoglevy/gargl
+
 
 ## Requirements
 * python3
