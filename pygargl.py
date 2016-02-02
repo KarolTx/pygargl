@@ -11,6 +11,8 @@ inspired by: https://github.com/jodoglevy/gargl
 * python3
 * python3-lxml
 * python3-cssselect - if using cssSelector fields
+* python3-requests
+
 
 ## Differences to original Gargl generator in Java:
 * written in script language => no need to compile and therefor rapid prototyping
@@ -20,8 +22,10 @@ inspired by: https://github.com/jodoglevy/gargl
 * ignores httpVersion field and response headers from GTF
 * does nothing with the description values and module name from GTF
 
+
 ## Example
 download https://github.com/jodoglevy/gargl/raw/master/templates/yahoosearch.gtf
+
 
 ```
 ARG_GTF = '/path/to/yahoosearch.gtf'
@@ -38,17 +42,20 @@ print(g.Search({'query': 'python'}))
 
 import re
 import json
-import urllib.parse
-import urllib.request
+import logging
 
+import requests
 from lxml import html
 
 __all__ = ['gargl']
 
+log = logging.getLogger(__name__)
+log.addHandler(logging.NullHandler())
+
 
 at_pattern = re.compile(r'[^@]*(@\w+@)[^@]*', re.IGNORECASE)
 
-def replace_variables(template_dict, values):
+def _replace_variables(template_dict, values):
     if not template_dict:
         return {}
 
@@ -79,59 +86,62 @@ def replace_variables(template_dict, values):
 
 
 
-class gargl(object):
-    def __init__(self, gtf, encoding='utf-8'):
-        self.gtf = gtf
-        self.conf = None
-        self.encoding = 'utf-8'
+class gargl:
+    def __init__(self, gtf):
+        self._gtf = gtf
+        self._conf = None
 
-        with open(self.gtf, 'r') as conf_file:
-            self.conf = json.load(conf_file)
+        with open(self._gtf, 'r') as conf_file:
+            self._conf = json.load(conf_file)
 
 
     def __getattr__(self, name):
+        log.debug('prepping function {}'.format(name))
+
         try:
-            f_desc = [f for f in self.conf['functions'] if f['functionName'] == name][0]
+            f_desc = [f for f in self._conf['functions'] if f['functionName'] == name][0]
         except IndexError:
             raise AttributeError('function {} is not defined in GTF'.format(name))
 
         # prepare method
-        def function(var_dict):
-            # prepare URL
+        def method(var_dict):
+            log.info('calling function {}'.format(name))
+
+            response = None
             url = f_desc['request']['url']
-            if f_desc['request'].get('queryString'):
-                url = '?'.join([url, urllib.parse.urlencode(replace_variables(
-                    f_desc['request']['queryString'], var_dict))])
+            data = _replace_variables(f_desc['request'].get('postData'), var_dict)
+            headers = _replace_variables(f_desc['request']['headers'], var_dict)
 
-            data = urllib.parse.urlencode(
-                replace_variables(f_desc['request'].get('postData'), var_dict)
-                ).encode(self.encoding)
-            headers = replace_variables(
-                f_desc['request']['headers'], var_dict)
+            if f_desc['request']['method'] == 'GET':
+                response = requests.get(url, headers=headers, data=data)
+            else:
+                response = requests.post(url, headers=headers, data=data)
 
-            request = urllib.request.Request(url, data=data, headers=headers,
-                method=f_desc['request']['method'])
-            response = urllib.request.urlopen(request)
-
-            if not f_desc['response'].get('fields'):
-                return response.read().decode(self.encoding)
-
-            res = []
-            tree = html.parse(response)
-
-            # compatibility with GTFv1.0
-            body = tree.xpath('/html/body')[0]
-
-            for item in f_desc['response']['fields']:
-                res.append({item['name']: body.cssselect(item['cssSelector'])})
-            return res
+            # throw an exception if necessary
+            response.raise_for_status()
+            return self._parse_response(f_desc.get('response', {}), response.text)
 
         # "cache it"
         if name not in dir(self):
-            self.__setattr__(name, function)
+            self.__setattr__(name, method)
 
-        return function
+        return method
 
+
+    def _parse_response(self, response_rules, response):
+        if not len(response_rules.get('fields', {})):
+            return response
+
+        res = []
+        tree = html.parse(response)
+
+        # compatibility with GTFv1.0
+        body = tree.xpath('/html/body')[0]
+        # maybe xpath TODO
+
+        for item in response_rules['fields']:
+            res.append({item['name']: body.cssselect(item['cssSelector'])})
+        return res
 
 
 if __name__ == '__main__':
