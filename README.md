@@ -17,8 +17,9 @@ inspired by: https://github.com/jodoglevy/gargl
 ## Differences to original Gargl generator in Java:
 * written in script language => no need to compile and therefor rapid prototyping
 * supports multiple template variables in the original Gargl format
-* supports templating variables in the Python format mini-language => extends the GTF
-* returns fields (selected by CSS) as lxml elements
+* supports templating variables in the [Python format mini-language](https://docs.python.org/3/library/string.html#formatspec) => extends the GTF
+* support selecting fields also by using XPath expessions (see sample GTF)
+* returns fields (selected by CSS or XPath) as lxml elements
 * ignores httpVersion field and response headers from GTF
 * does nothing with the description values and module name from GTF
 
