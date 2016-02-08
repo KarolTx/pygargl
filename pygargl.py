@@ -24,16 +24,10 @@ inspired by: https://github.com/jodoglevy/gargl
 
 
 ## Example
-download https://github.com/jodoglevy/gargl/raw/master/templates/yahoosearch.gtf
-
 
 ```
-ARG_GTF = '/path/to/yahoosearch.gtf'
+ARG_GTF = 'sample/yahoosearch.gtf'
 g = gargl(ARG_GTF)
-
-print(g.Autocomplete({'term': 'current ti'}))
-print(g.Autocomplete({'term': 'pygargl'}))
-
 print(g.Search({'query': 'pygargl'}))
 print(g.Search({'query': 'python'}))
 ```
@@ -109,13 +103,14 @@ class gargl:
 
             response = None
             url = f_desc['request']['url']
+            qs = _replace_variables(f_desc['request']['queryString'], var_dict)
             data = _replace_variables(f_desc['request'].get('postData'), var_dict)
             headers = _replace_variables(f_desc['request']['headers'], var_dict)
 
             if f_desc['request']['method'] == 'GET':
-                response = requests.get(url, headers=headers, data=data)
+                response = requests.get(url, headers=headers, params=qs, data=data)
             else:
-                response = requests.post(url, headers=headers, data=data)
+                response = requests.post(url, headers=headers, params=qs, data=data)
 
             # throw an exception if necessary
             response.raise_for_status()
@@ -133,23 +128,23 @@ class gargl:
             return response
 
         res = []
-        tree = html.parse(response)
-
-        # compatibility with GTFv1.0
-        body = tree.xpath('/html/body')[0]
-        # maybe xpath TODO
+        tree = html.fromstring(response)
+        root = tree.xpath('/html/body')[0]
 
         for item in response_rules['fields']:
-            res.append({item['name']: body.cssselect(item['cssSelector'])})
+            # compatibility with GTFv1.0
+            if item.get('cssSelector'):
+                res.append({item['name']: root.cssselect(item['cssSelector'])})
+            # extension
+            if item.get('xpath'):
+                res.append({item['name']: root.xpath(item['xpath'])})
+
         return res
 
 
 if __name__ == '__main__':
-    # download https://github.com/jodoglevy/gargl/raw/master/templates/yahoosearch.gtf
-    ARG_GTF = 'yahoosearch.gtf'
+    ARG_GTF = 'sample/yahoosearch.gtf'
     g = gargl(ARG_GTF)
-    print(g.Autocomplete({'term': 'current ti'}))
-    print(g.Autocomplete({'term': 'pygargl'}))
-    print(g.Search({'query': 'pygargl'}))
     print(g.Search({'query': 'python'}))
+    print(g.Search({'query': 'pygargl'}))
 

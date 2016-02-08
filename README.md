@@ -24,16 +24,10 @@ inspired by: https://github.com/jodoglevy/gargl
 
 
 ## Example
-download https://github.com/jodoglevy/gargl/raw/master/templates/yahoosearch.gtf
-
 
 ```
-ARG_GTF = '/path/to/yahoosearch.gtf'
+ARG_GTF = 'sample/yahoosearch.gtf'
 g = gargl(ARG_GTF)
-
-print(g.Autocomplete({'term': 'current ti'}))
-print(g.Autocomplete({'term': 'pygargl'}))
-
 print(g.Search({'query': 'pygargl'}))
 print(g.Search({'query': 'python'}))
 ```
