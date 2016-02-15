@@ -104,14 +104,19 @@ class gargl:
 
             response = None
             url = f_desc['request']['url']
-            qs = _replace_variables(f_desc['request']['queryString'], var_dict)
-            data = _replace_variables(f_desc['request'].get('postData'), var_dict)
-            headers = _replace_variables(f_desc['request']['headers'], var_dict)
+            qs = _replace_variables(f_desc['request'].get('queryString', {}),
+                var_dict)
+            data = _replace_variables(f_desc['request'].get('postData', {}),
+                var_dict)
+            headers = _replace_variables(f_desc['request'].get('headers', {}),
+                var_dict)
 
             if f_desc['request']['method'] == 'GET':
-                response = requests.get(url, headers=headers, params=qs, data=data)
+                response = requests.get(url, headers=headers,
+                    params=qs, data=data)
             else:
-                response = requests.post(url, headers=headers, params=qs, data=data)
+                response = requests.post(url, headers=headers,
+                    params=qs, data=data)
 
             # throw an exception if necessary
             response.raise_for_status()
