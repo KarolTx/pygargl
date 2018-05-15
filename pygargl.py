@@ -100,7 +100,7 @@ class gargl:
 
         # prepare method
         def method(var_dict):
-            log.info('calling function {}'.format(name))
+            log.debug('calling function {}'.format(name))
 
             response = None
             url = f_desc['request']['url']
@@ -121,10 +121,6 @@ class gargl:
             # throw an exception if necessary
             response.raise_for_status()
             return self._parse_response(f_desc.get('response', {}), response.text)
-
-        # "cache it"
-        if name not in dir(self):
-            self.__setattr__(name, method)
 
         return method
 
