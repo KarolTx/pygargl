@@ -36,7 +36,6 @@ print(g.Search({'query': 'python'}))
 
 
 import re
-import json
 import logging
 
 import requests
@@ -82,12 +81,8 @@ def _replace_variables(template_dict, values):
 
 
 class gargl:
-    def __init__(self, gtf):
-        self._gtf = gtf
-        self._conf = None
-
-        with open(self._gtf, 'r') as conf_file:
-            self._conf = json.load(conf_file)
+    def __init__(self, gtf_conf):
+        self._conf = gtf_conf
 
 
     def __getattr__(self, name):
@@ -145,8 +140,12 @@ class gargl:
 
 
 if __name__ == '__main__':
+    import json
     ARG_GTF = 'sample/yahoosearch.gtf'
-    g = gargl(ARG_GTF)
+
+    with open(ARG_GTF, 'r') as conf_file:
+        g = gargl(json.load(conf_file))
+
     print(g.Search({'query': 'python'}))
     print(g.Search({'query': 'pygargl'}))
 
